@@ -1,14 +1,18 @@
+/* eslint-disable no-console */
 import { Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
+import { envVars } from "./app/config/env";
 let server: Server;
 
 const startServer = async () => {
   try {
-    await mongoose.connect("mongodb://localhost:27017/");
+    await mongoose.connect(envVars.DB_URL);
     console.log("Connect to DB");
     server = app.listen(5000, () => {
-      console.log("Server is listening to port 5000");
+      console.log(
+        `Server is listening in ${envVars.NODE_ENV} to port ${envVars.PORT}`
+      );
     });
   } catch (error) {
     console.log(error);
