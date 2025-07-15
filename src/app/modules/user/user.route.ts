@@ -1,6 +1,8 @@
 import { Router } from "express";
+import { checkAuth } from "../../middlewares/checkAuth";
 import { validateRequest } from "../../middlewares/validateRequest";
 import { UserController } from "./user.controller";
+import { Role } from "./user.interface";
 import { createUserZodSchema } from "./user.validation";
 
 const router = Router();
@@ -9,6 +11,6 @@ router.post(
   validateRequest(createUserZodSchema),
   UserController.createUser
 );
-router.get("/all-user", UserController.getAllUsers);
+router.get("/all-user", checkAuth(Role.ADMIN), UserController.getAllUsers);
 
 export const UserRoutes = router;
