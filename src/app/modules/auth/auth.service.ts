@@ -3,9 +3,11 @@ import httpStatus from "http-status-codes";
 import { JwtPayload } from "jsonwebtoken";
 import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
-import { generateToken, verifyToken } from "../../utils/jwt";
-import { createUserTokens } from "../../utils/userTokens";
-import { IsActive, IUser } from "../user/user.interface";
+import {
+  createNewAccessTokenWithRefreshToken,
+  createUserTokens,
+} from "../../utils/userTokens";
+import { IUser } from "../user/user.interface";
 import { User } from "../user/user.model";
 
 const credentialsLogin = async (payload: Partial<IUser>) => {
@@ -36,49 +38,73 @@ const credentialsLogin = async (payload: Partial<IUser>) => {
 };
 
 const getNewAccessToken = async (refreshToken: string) => {
-  const verifiedRefreshToken = verifyToken(
-    refreshToken,
-    envVars.JWT_REFRESH_SECRET
-  ) as JwtPayload;
-
-  const isUserExist = (await User.find({
-    email: verifiedRefreshToken.email,
-  })) as Partial<IUser>;
-
-  if (!isUserExist) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User dose not exist");
-  }
-  if (
-    isUserExist.isActive === IsActive.BLOCKED ||
-    isUserExist.isActive === IsActive.INACTIVE
-  ) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      `User is ${isUserExist.isActive}`
-    );
-  }
-  if (isUserExist.isDeleted) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User is deleted");
-  }
-
-  const JwtPayload = {
-    userId: isUserExist._id,
-    email: isUserExist.email,
-    role: isUserExist.role,
-  };
-
-  const accessToken = generateToken(
-    JwtPayload,
-    envVars.JWT_ACCESS_SECRET,
-    envVars.JWT_ACCESS_EXPIRES
-  );
+  const accessToken = await createNewAccessTokenWithRefreshToken(refreshToken);
 
   return {
-    accessToken: accessToken,
+    accessToken,
   };
+};
+
+// Problem hear, clear concept in support section
+// const resetPassword = async (
+//   oldPassword: string,
+//   newPassword: string,
+//   decodedToken: JwtPayload
+// ) => {
+//   const user = await User.findOne({ _id: decodedToken.userID })
+
+//   const isOldPasswordMatch = await bcryptjs.compare(
+//     oldPassword,
+//     user?.password as string
+//   );
+
+//   if (!isOldPasswordMatch) {
+//     throw new AppError(httpStatus.UNAUTHORIZED, "Old Password dose not match");
+//   }
+
+//   const user!.password = await bcryptjs.hash(
+//     newPassword,
+//     Number(envVars.BCRYPT_SALT_ROUND)
+//   );
+//   user!.save()
+
+//   return true;
+// };
+
+const resetPassword = async (
+  oldPassword: string,
+  newPassword: string,
+  decodedToken: JwtPayload
+) => {
+  const _id = decodedToken.userId;
+
+  const user = await User.findById(_id);
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const isOldPasswordMatch = await bcryptjs.compare(
+    oldPassword,
+    user?.password as string
+  );
+
+  if (!isOldPasswordMatch) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Old password does not match");
+  }
+
+  user.password = await bcryptjs.hash(
+    newPassword,
+    Number(envVars.BCRYPT_SALT_ROUND)
+  );
+
+  await user.save();
+
+  return true;
 };
 
 export const AuthServices = {
   credentialsLogin,
   getNewAccessToken,
+  resetPassword,
 };
