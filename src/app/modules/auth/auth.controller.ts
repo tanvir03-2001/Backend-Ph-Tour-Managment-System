@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status-codes";
+import { JwtPayload } from "jsonwebtoken";
+import { envVars } from "../../config/env";
 import AppError from "../../errorHelpers/AppError";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/sendResponse";
 import { setAuthCookie } from "../../utils/setCookie";
+import { createUserTokens } from "../../utils/userTokens";
 import { AuthServices } from "./auth.service";
 
 const credentialsLogin = catchAsync(
@@ -75,7 +78,11 @@ const resetPassword = catchAsync(
 
     const { oldPassword, newPassword } = req.body;
 
-    await AuthServices.resetPassword(oldPassword, newPassword, decodedToken);
+    await AuthServices.resetPassword(
+      oldPassword,
+      newPassword,
+      decodedToken as JwtPayload
+    );
 
     sendResponse(res, {
       success: true,
@@ -85,10 +92,38 @@ const resetPassword = catchAsync(
     });
   }
 );
+const googleCallback = catchAsync(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const redirectTo = req.query.state ? req.query.state : "";
+
+    // Problem : not working
+    // if (redirectTo.startsWith("/")) {
+
+    //   redirectTo = redirectTo.slice(1)
+
+    // }
+
+    const user = req.user;
+
+    // eslint-disable-next-line no-console
+    console.log("user", user);
+
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User Not Found");
+    }
+
+    const tokenInfo = createUserTokens(user);
+
+    setAuthCookie(res, tokenInfo);
+
+    res.redirect(`${envVars.FRONTEND_URL + redirectTo}`);
+  }
+);
 
 export const AuthController = {
   credentialsLogin,
   getNewAccessToken,
   logout,
   resetPassword,
+  googleCallback,
 };

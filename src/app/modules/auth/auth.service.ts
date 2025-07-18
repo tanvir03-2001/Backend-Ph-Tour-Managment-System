@@ -45,32 +45,6 @@ const getNewAccessToken = async (refreshToken: string) => {
   };
 };
 
-// Problem hear, clear concept in support section
-// const resetPassword = async (
-//   oldPassword: string,
-//   newPassword: string,
-//   decodedToken: JwtPayload
-// ) => {
-//   const user = await User.findOne({ _id: decodedToken.userID })
-
-//   const isOldPasswordMatch = await bcryptjs.compare(
-//     oldPassword,
-//     user?.password as string
-//   );
-
-//   if (!isOldPasswordMatch) {
-//     throw new AppError(httpStatus.UNAUTHORIZED, "Old Password dose not match");
-//   }
-
-//   const user!.password = await bcryptjs.hash(
-//     newPassword,
-//     Number(envVars.BCRYPT_SALT_ROUND)
-//   );
-//   user!.save()
-
-//   return true;
-// };
-
 const resetPassword = async (
   oldPassword: string,
   newPassword: string,
