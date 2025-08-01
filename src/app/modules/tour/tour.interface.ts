@@ -10,7 +10,7 @@ export interface ITour {
   description?: string;
   images?: string[];
   location?: string;
-  constFrom?: number;
+  costFrom?: number;
   startDate?: Date;
   endDate?: Date;
   included?: string[];
@@ -22,4 +22,6 @@ export interface ITour {
   maxAge?: number;
   division: Types.ObjectId;
   tourType?: Types.ObjectId;
+  departureLocation?: string;
+  arrivalLocation?: string;
 }
